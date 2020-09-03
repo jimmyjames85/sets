@@ -42,6 +42,7 @@ func writeMap(w io.Writer, m map[string]struct{}) error {
 	return nil
 }
 
+// returns m1 ∪ m2
 func union(m1, m2 map[string]struct{}) map[string]struct{} {
 	m := make(map[string]struct{})
 
@@ -71,6 +72,15 @@ func difference(m1, m2 map[string]struct{}) map[string]struct{} {
 	return m
 }
 
+// returns (m1 - m2) ∪ (m2  - m1)
+func symmetricDifference(m1, m2 map[string]struct{}) map[string]struct{} {
+
+	lv := difference(m1, m2)
+	rv := difference(m2, m1)
+
+	return union(lv, rv)
+}
+
 func intersection(m1, m2 map[string]struct{}) map[string]struct{} {
 	if len(m2) < len(m1) {
 		m1, m2 = m2, m1 // iterate through the smaller of the two maps
@@ -95,9 +105,14 @@ Usage:
         %s file1 OP file2
 
 OP:
-	union			+, add, union
-	difference		-, diff, sub, difference
-	intersection		n, int, intersect, intersection
+	union, add, +			A∪B = {x: x∈A or x∈B}
+
+	intersect, n			A∩B = {x: x∈A and x∈B}
+
+	difference, diff, -		A−B = {x: x∈A and x∉B}
+
+	sdifference, sdiff		(A−B)∪(B-A) = {x: x∈A xor x∈B}   (symmetric difference)
+
 
 Flags:
         -h, --help              Displays this message
@@ -155,12 +170,14 @@ func main() {
 	var op func(map[string]struct{}, map[string]struct{}) map[string]struct{}
 
 	switch opts.op {
-	case "difference", "-", "diff", "sub":
-		op = difference
-	case "union", "+", "add":
+	case "union", "+":
 		op = union
-	case "intersection", "n", "intersect", "int":
+	case "intersect", "n":
 		op = intersection
+	case "difference", "diff", "-":
+		op = difference
+	case "sdifference", "sdiff":
+		op = symmetricDifference
 	default:
 		exitf(-1, "unknown op: %s\n", opts.op)
 	}
